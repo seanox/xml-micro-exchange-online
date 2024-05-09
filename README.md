@@ -106,10 +106,35 @@ CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 
 
-# You have the choice
+# Implementations
 - [XMEX for PHP](https://github.com/seanox/xml-micro-exchange-php)
 - [XMEX for Node.js](https://github.com/seanox/xml-micro-exchange-js)
 - [XMEX for Java](https://github.com/seanox/xml-micro-exchange-java)
+
+
+# Docker Image
+https://hub.docker.com/repository/docker/seanox/xmex
+
+
+# Free XML-Micro-Exchange
+__Before using, you must read, understand and agree to__
+__[Terms of Service](https://xmex.seanox.com/terms.html) and__
+__[Privacy Policy](https://xmex.seanox.com/privacy.html).__
+
+[https://xmex.seanox.com/xmex!](https://xmex.seanox.com/xmex!)   
+65536 Storages x 64 kB  
+__Please do not get confused, the API is online.  
+Requests without storage identifier (see [manual](manual/README.md#manual))
+are responded with status 400.__  
+See also [OpenAPI YAML](https://raw.githubusercontent.com/seanox/xml-micro-exchange-js/main/sources/service.yaml)
+or open [OpenAPI YAML in a GUI](https://editor.swagger.io/?url=https://raw.githubusercontent.com/seanox/xml-micro-exchange-js/main/sources/service.yaml).
+
+It is a small server (1 Core, 1GB, 10 GB SSD) in a big datacenter -- but
+apparently enough.  
+__Sponsors are always welcome.__  
+The project needs ~~a good and simple domain and~~ if possible more power.  
+It costs about 5 Euro per month for 65536 x 1024 kB with double CPU cores and
+double memory.
 
 
 # Contact
