@@ -33,13 +33,11 @@ data access, data transformation, and volatile short-term storage.
 
 __Why all this?__
 
-Static web-applications on different clients want to communicate with each
+- Static web-applications on different clients want to communicate with each
 other, e.g. for games, chats and collaboration.
-
-Smart sensors want to share their data and smart devices want to access this
+- Smart sensors want to share their data and smart devices want to access this
 data and also exchange data with each other.
-
-Clients can establish dynamically volatile networks.
+- Clients can establish dynamically volatile networks.
 
 __In this communication are all participants.__  
 __No one is a server or master, all are equal and no one has to know the other.__  
