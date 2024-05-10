@@ -83,7 +83,7 @@ __All meet without obligation.__
   [Cerbot](https://certbot.eff.org/).
 - __Containerization__  
   XML-Micro-Exchange is also available as a container image on Docker Hub:
-  https://hub.docker.com/repository/docker/seanox/xmex
+  https://hub.docker.com/r/seanox/xmex
 
 
 # Licence Agreement
@@ -113,7 +113,7 @@ specific language governing permissions and limitations under the License.
 
 
 # Docker Image
-https://hub.docker.com/repository/docker/seanox/xmex
+https://hub.docker.com/r/seanox/xmex
 
 
 # Free XML-Micro-Exchange
