@@ -1,0 +1,137 @@
+1.5.0 20241027
+BF: Build: Review and optimization
+CR: Service: Optimization of the configuration via environment variables
+    Simplifies the provision as a container.
+    - XMEX_URI_XPATH_DELIMITER: XPath delimiter in the URI (!)
+    - XMEX_STORAGE_DIRECTORY: Directory of the data storage (./data)
+    - XMEX_STORAGE_QUANTITY: Maximum number of files in data storage (65535)
+    - XMEX_STORAGE_SPACE: Maximum data size of files in data storage in bytes (256 *1024)
+    - XMEX_STORAGE_EXPIRATION: Maximum idle time of the files in seconds (15 *60)
+    - XMEX_STORAGE_REVISION_TYPE: Basis of the revision number (1)
+    - XMEX_DEBUG_MODE: Activates debug mode for unit tests (off)
+    - XMEX_CONTAINER_MODE: Activates debug mode for unit tests (off)
+CR: Request: Configurable XPath delimiter of the URI
+    XPath delimiter for the URI is not automatically the first symbol.
+    The uniform standard is the exclamation mark !
+CR: Request: Omission of XPath via query string
+    The XPath includes the query string as part of the path.
+CR: Request: Uniform identifier question mark for Base64 and hex encoded paths
+    old: /xmex!Base64:Ly9ib29rW2xhc3QoKV0vY2hhcHRlcltsYXN0KCld
+    new: /xmex!?Ly9ib29rW2xhc3QoKV0vY2hhcHRlcltsYXN0KCld
+    old: /xmex!0x282f626f6f6b73292f2f6c6173743a3a6265666f7265
+    new: /xmex!?282f626f6f6b73292f2f6c6173743a3a6265666f7265
+CR: Storage: Optimization of the cleanup
+    To reduce the execution time of the requests, the cleanup only runs every
+    minute. Parallel cleanups due to parallel requests cannot be excluded, but
+    should not be a problem.
+CR: Storage: Review and optimization
+    - The name now allows word characters and minus, if the minus is not at the
+      beginning and not at the end.
+    - The encoding of the file name has been optimized so that case-sensitive
+      also works in case-insensitive file systems (like Windows).
+    - Added the consideration of the root element. Name of storage and name of
+      root element define the case-sensitive name of the storage in the file
+      system. This means that the different spelling of the root element creates
+      different storages.
+CR: Service: Review of revision management
+    - Added option XMEX_STORAGE_REVISION_TYPE
+      Defines what the revision which is used in the attributes ___rev and
+      ___uid should be based on. With 'serial', an auto incremental integer is
+      used. The default value is 'timestamp', which uses an alphanumeric
+      timestamp.
+    - Omission of the response header Connection-Unique
+      The client can manage this better for itself. The created ___uid attribute
+      of the elements are now based on the storage revision ___rev attribute.
+    - Omission of the response header Storage-Effects
+    - Switch to response header Storage-Revision with the number of changes
+      schema: revision/number of changes, e.g. Storage-Revision: 123/45
+      without changes Storage-Revision: 123/0
+CR: Service: Review and optimization of CONNECT
+    - Storage must be initialized mandatory with CONNECT before it can be used.
+    - Added alternative alias method TOUCH, if CONNECT is not allowed.
+    - Added alternative PUT without XPath, if CONNECT and TOUCH is not allowed.
+CR: Service: Review and optimization of OPTIONS
+    - Omission of the response header Storage-Effects.
+    - Omission as an alternative to CONNECT.
+      If CONNECT is not allowed use TOUCH.
+      If TOUCH is not allowed use PUT without XPath.
+CR: Service: Review and optimization of GET
+    - Requests with an XPath that does not address a target are responded to
+      with status 204 (No Content). Previously it was status 404, but 404 now
+      refers exclusively to the storage file.
+CR: Service: Review and optimization of DELETE, PATCH, PUT
+    - Requests with XPath that do not address a target are responded with status
+      304 (Not Modified), as the request does not change the storage file.
+CR: Service: Review and optimization of POST
+    - Extension of the element output by the attribute encoding to specify the
+      response header Content-Type.
+CR: Service: Optimization of data storage
+    - Unnecessary spaces and indentations are removed.
+CR: Test: Added option XMEX_DEBUG_MODE
+    - Forces the use of the automatic incremental revision type
+    - Adds hashed headers for request, response and storage to the response
+    - Storage files are also created with the file extension xml and formatted
+    - Storage files are saved in versions
+CR: Test: Review and optimization
+    - Switch to the use of XMEX_DEBUG_MODE
+    - Switch to new hashes in the response header
+      Trace-Request-Hash, Trace-Request-Header-Hash, Trace-Request-Data-Hash
+      Trace-Response-Hash, Trace-Response-Header-Hash, Trace-Response-Data-Hash
+      Trace-Storage-Hash
+    - Integration of JetBrains HTTP Client CLI
+CR: Docker: Added support as Docker image
+
+1.3.1 20240801
+BF: Review: Optimization/Corrections
+BF: Build: Optimization / correction of the release info process
+CR: Build: Releases are now only available on the release page
+CR: OpenAPI: Added the missing OpenAPI Specification
+CR: Project: Moved repository to xml-micro-exchange-php
+NT: Harmonization of version numbers for the different implementations
+    Major and minor describe the API, patch refers to the implementation.
+    The version of OpenAPI therefore only uses major and minor, patch is always 0.
+
+1.3.0 20210525
+BF: Service: Uniform use of status 204 for 202 / 404
+    Status 404 always refers storage and not entities/addressed targets in the storage.
+BF: Service: Uniform use of status 204 for 404 in relation to targets in the storage (axes)
+    Status 404 is now only used in relation to storage.
+    Addressed targets (axes) use status 204 in combination with the response header Storage-Effects.
+BF: Service: Optimization/harmonization of content types for XML
+    Fragments (PUT/PATCH) uses text/xhtml
+    XML output uses application/xml
+    XSLT input (POST) uses application/xslt+xml
+CR: Service: OPTIONS responds with 204 instead of 200
+
+1.2.0 2021xxxx
+NT: Version was skipped
+    For compatibility with the JavaScript implementation
+
+1.1.0 20210225
+BF: Service: Optimization of CONNECT
+    Status 507 (Insufficient Storage) now only occurs when a new storage is
+    to be created, but not when connecting to an existing one.
+BF: Service: Optimization of CORS
+    Correction for a correct preflight OPTIONS response.
+    Change to the full notation of the Access-Control headers.
+    Omission of the automatic prefix.
+BF: Build: Correction of release
+    Release file (zip) was not overwritten if already exists.
+BF: Service: Uniform use of the GMT time zone
+    changes: Storage-Last-Modified / Storage-Expiration
+BF: Service: Correction in the creation of trace and trace hashes
+BF: Service: Correction of POST for use of status 422 by errors in the stylesheets instead of status 400
+    Concerns the declaration from the output
+CR: Service: Added directives for XPath
+    Directives are added at the end of the XPath separated by exclamation marks (!).
+CR: Service: Added the directive JSON
+    This directive transforms the output to JSON.
+CR: Service GET/POST: Added support for accept header: application/json
+    The header enforces the transformation of XML and text output as JSON.
+    If the return value is not application/xslt+xml or text/plain, the header
+    has no effect on the output. The client is informed via the Content-Type
+    whether the transformation was used.
+CR: Test: Added Snake as proof of concept for a multiplayer game
+
+1.0.0 20201220
+NT: Release is available
