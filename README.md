@@ -1,9 +1,9 @@
 <p>
-  <a href="https://github.com/seanox/xml-micro-exchange/pulls"
+  <a href="https://github.com/seanox/xml-micro-exchange-online/pulls"
       title="Development is waiting for new issues / requests / ideas"
-    ><img src="https://img.shields.io/badge/development-active-green?style=for-the-badge"
+    ><img src="https://img.shields.io/badge/development-passive-blue?style=for-the-badge"
   ></a>  
-  <a href="https://github.com/seanox/xml-micro-exchange/issues"
+  <a href="https://github.com/seanox/xml-micro-exchange-online/issues"
     ><img src="https://img.shields.io/badge/maintenance-active-green?style=for-the-badge"
   ></a>
   <a href="http://seanox.com/contact"
@@ -13,9 +13,10 @@
 
 
 # Description
-Free Web Service of Seanox XMEX - XML-Micro-Exchange
+XML-Micro-Exchange infrastructure
 
-https://xmex.seanox.com
+- https://xmex.seanox.com
+- https://hub.docker.com/r/seanox/xmex
 
 
 # Licence Agreement
