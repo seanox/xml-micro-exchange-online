@@ -1,0 +1,322 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>Seanox XMEX</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="styles/page.css">
+  </head>
+  <body>
+    <h1>Seanox XMEX - XML-Micro-Exchange (Free Web Service)</h1>
+    <p>
+      The origin of the project is the desire for an easily accessible place for
+      data exchange on the Internet. Inspired by JSON-Storages the idea of a
+      feature-rich equivalent based on XML, XPath and XSLT was born. The focus
+      should be on a public, volatile and short-term data exchange for (static)
+      web-applications and IoT.
+    </p>
+    <p>
+      <strong>
+        Just exchange data without an own server landscape.<br/>
+        Just exchange data without knowing and managing all clients.
+      </strong>
+    </p>
+    <p>
+      XML-Micro-Exchange is a volatile NoSQL stateless micro datasource for the
+      Internet. It is designed for easy communication and data exchange of
+      web-applications and for IoT or for other Internet-based modules and
+      components. The XML based datasource is volatile and lives through
+      continuous use and expires through inactivity. They are designed for
+      active and near real-time data exchange but not as a real-time capable
+      long-term storage. Compared to a JSON storage, this datasource supports
+      more dynamics, partial data access, data transformation, and volatile
+      short-term storage.
+    </p>
+    <p>
+      <strong>Why all this?</strong>
+    </p>
+    <ul>
+      <li>
+        Static web-applications on different clients want to communicate with
+        each other, e.g. for games, chats and collaboration.
+      </li>
+      <li>
+        Smart sensors want to share their data and smart devices want to access
+        this data and also exchange data with each other.
+      </li>
+      <li>
+        Clients can establish dynamically volatile networks.
+      </li>
+    </ul>
+    <p>
+      <strong>
+        In this communication are all participants.<br/>
+        No one is a server or master, all are equal and no one has to know the other.<br/>
+        All meet without obligation.
+      </strong>
+    </p>
+
+    <h3>Features</h3>
+    <ul>
+      <li>
+        <strong>RESTful</strong><br>
+        The REST API supports the HTTP methods CONNECT, OPTIONS, GET, POST, PUT,
+        PATCH, DELETE. The CONNECT method is not a standard and the function can
+        be used alternatively via TOUCH or PUT without XPath.
+      </li>
+      <li>
+        <strong>XPath</strong><br>
+        XPath axes and functions are used for access, navigation and addressing
+        of targets in the data source and it is an integral part of the URI with
+        dynamic and functional effects.</li>
+      <li>
+        <strong>Multiple axes and targets</strong><br>
+        An XPath axis can address several elements and attributes
+        simultaneously, which can be changed with one call.
+      </li>
+      <li>
+        <strong>XPath Functions</strong><br>
+        PUT and PATCH support XML structures and static values (text), as well
+        as XPath functions that allow dynamic values.
+      </li>
+      <li>
+        <strong>Data Query</strong><br>
+        Data can be queried in the form of XML structure or substructure if the
+        XPath notation represents an axis, otherwise the XPath is interpreted as
+        an XPath function and responded with the result as text. Thus XPath
+        provides a dynamic syntax for queries.
+      </li>
+      <li>
+        <strong>Data Transformation</strong><br>
+        The POST method supports data transformation via XSLT. Similar to GET,
+        data can be queried and then transformed with an XSLT template
+        transmitted via POST.
+      </li>
+      <li>
+        <strong>JSON Support</strong><br>
+        All requests can be responded by the service in JSON format.
+      </li>
+      <li>
+        <strong>Security</strong><br>
+        This aspect was deliberately considered and implemented here only in a
+        very rudimentary form. The storage name with a length of 1 - 64
+        characters and the individual root element can be regarded as secret.
+        For further security the approach of Basic Authentication, Digest Access
+        Authentication and/or Server/Client certificates is followed, which is
+        configured outside of the XMEX (XML-Micro-Exchange) at the web server.
+      </li>
+    </ul>
+
+    <h3>API</h3>
+    <p>
+      HTTP is used. The URI typically contains a noticeable separator to divide
+      it into context path and XPath. For the API only the XPath is relevant.
+    </p>
+    <pre>
+https://xmex.seanox.com/xmex!xpath(-function)
+<-------------------------->|<-------------->
+        Context Path              XPath
+    </pre>
+    <p>
+      In some cases, the XPath syntax may not be supported as a URI by the
+      client or provider. In these cases, the XPath can alternatively be used as
+      Base64 or hexadecimal encoded. For this purpose, a question mark is
+      expected after the last character of the context path and then the encoded
+      string. The encoding method is determined automatically.
+    </p>
+    <pre>
+https://xmex.seanox.com/xmex!count(//items[@id<0])
+https://xmex.seanox.com/xmex!count(%2F%2Fitems[@id<0])
+https://xmex.seanox.com/xmex!?636F756E74282F2F6974656D735B4069643C305D29
+https://xmex.seanox.com/xmex!?Y291bnQoLy9pdGVtc1tAaWQ8MF0p
+    </pre>
+    <p>
+      If the method cannot be determined, the string is interpreted as an XPath
+      (function) and because of the question mark at the beginning usually
+      causes an invalid XPath error.
+    </p>
+    <p>
+      The request supports the following additional headers:
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Request Header</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>Storage</code></td>
+          <td>Storage identifier optional with name of the root element</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Also the response has additional headers:
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Response Header</th>
+          <th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>Storage</code></td>
+          <td>Storage identifier without the name of the root element</td>
+        </tr>
+        <tr>
+          <td><code>Storage-Revision</code></td>
+          <td>Current revision of the storage (revision/changes)</td>
+        </tr>
+        <tr>
+          <td><code>Storage-Space</code></td>
+          <td>Capacity of the storage (total/used in bytes)</td>
+        </tr>
+        <tr>
+          <td><code>Storage-Last-Modified</code></td>
+          <td>Timestamp (RFC822) of the last access</td>
+        </tr>
+        <tr>
+          <td><code>Storage-Expiration</code></td>
+          <td>Timestamp (RFC822) when the storage will expire</td>
+        </tr>
+        <tr>
+          <td><code>Storage-Expiration-Time</code></td>
+          <td>Idle time in milliseconds until storage expires</td>
+        </tr>
+        <tr>
+          <td><code>Execution-Time</code></td>
+          <td>Duration of request processing in milliseconds</td>
+        </tr>
+        <tr>
+          <td><code>Error</code></td>
+          <td>Unique error number from the logging with status 500</td>
+        </tr>
+        <tr>
+          <td><code>Message</code></td>
+          <td>Detailed error message with status 400 / 422</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      <strong>
+        Notice about response code 404: This always refers to the storage file,
+        but never to an addressed target in the storage. If a target does not
+        exist, requests are responded to with code 204 or 304 for modifying
+        requests.
+      </strong>
+    </p>
+
+    <h3>Usage</h3>
+    <ol>
+      <li>
+        <p>
+          The storage must be opened by CONNECT, TOUCH or PUT without XPath.
+          This can be done by any client, even if the storage already exists.
+          Because CONNECT and TOUCH are not an HTTP standard, it is better to
+          use PUT without XPath.
+        </p>
+      </li>
+      <li>
+        <p>
+          The client should always proceed as if it were using storage alone
+          and created the schema it needs. The creation of the schema is done
+          with PUT. Relative and conditional axes should be used as targets.
+          This ensures that no duplicates are created or data is overwritten.
+        </p>
+        <p>
+          e.g. <code>PUT /books[not(book[@title='A Modern Utopia'])]::last</code>
+        </p>
+        <p>
+          This approach made transactions unnecessary.
+        </p>
+      </li>
+      <li>
+        <p>Now the client can use the storage.</p></li>
+      <li>
+        <p>
+          Closing or terminating the storage is not possible and necessary. The
+          storage expires automatically due to inactivity. The duration of use
+          and expiration time of the storage is contained in the response in the
+          headers <code>Storage-Last-Modified</code>,
+          <code>Storage-Expiration</code>, <code>Storage-Expiration-Time</code>.
+        </p>
+      </li>
+    </ol>
+
+    <h3>Free XML-Micro-Exchange</h3>
+    <p>
+      <strong>
+        Before using, you must read, understand and agree to
+        <a href="terms.html" target="_extern">Terms of Service</a> and
+        <a href="privacy.html" target="_extern">Privacy Policy</a>.
+      </strong>
+    </p>
+    <p>
+      <a href="https://xmex.seanox.com/xmex!" rel="nofollow">https://xmex.seanox.com/xmex!</a>
+    </p>
+    <p>
+      65536 Storages x 64 kB<br>
+      <strong>Please do not get confused, the API is online.<br>
+      Requests without storage identifier are responded with status 400.</strong>
+    </p>
+    <p>
+      It is a small server (1 vCore, 1 GB, 10 GB SSD) in a big datacenter --
+      but apparently enough.<br>
+      <strong>Sponsors are always welcome.</strong><br>
+      It costs about 5 Euro per month for 1,000,000 storages x 64 kB with double
+      CPU cores and double memory.
+    </p>
+
+    <h3>Documentation</h3>
+    <ul>
+      <li>
+        <a href="https://github.com/seanox/xml-micro-exchange-php/blob/master/manual/README.md"
+            target="_extern">Manual</a>
+      </li>
+      <li>
+        <a href="https://github.com/seanox/xml-micro-exchange-php/blob/master/manual/getting-started.md"
+            target="_extern">Getting Started</a>
+      </li>
+      <li>
+        <a href="openAPI.html" target="_extern">OpenAPI GUI</a>
+      </li>
+      <li>
+        <a href="openAPI.yaml" target="_extern">OpenAPI YAML</a>
+      </li>
+    </ul>
+
+    <h3>Examples</h3>
+    <p>
+      <a href="snake.html" target="_extern">Multiplayer Snake (Online)</a>
+      <a href="https://github.com/seanox/xml-micro-exchange-php/blob/master/test/snake.html"
+          target="_extern">Sources</a>
+    </p>
+
+    <h3>Open Source</h3>
+    <ul>
+      <li>
+        <a href="https://github.com/seanox/xml-micro-exchange-php"
+            target="_extern">https://github.com/seanox/xml-micro-exchange-php</a>
+      </li>
+      <li>
+        <a href="https://github.com/seanox/xml-micro-exchange-js"
+            target="_extern">https://github.com/seanox/xml-micro-exchange-js</a>
+      </li>
+      <li>
+        <a href="https://github.com/seanox/xml-micro-exchange-java"
+            target="_extern">https://github.com/seanox/xml-micro-exchange-java</a>
+      </li>
+    </ul>
+
+    <h3>About Seanox Software Solutions</h3>
+    <p>
+      Seanox Software Solutions was founded in 2000 as a non-commercial
+      open-source recreational project and it is still that way today. It is
+      pure passion for software development.
+    </p>
+  </body>
+</html>
