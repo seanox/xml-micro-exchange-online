@@ -29,9 +29,9 @@ https://github.com/seanox/xml-micro-exchange-js/issues
 https://github.com/seanox/xml-micro-exchange-java/issues
 
 __Where to find getting started__ (depending on the project)__:__  
-https://github.com/seanox/xml-micro-exchange-js/blob/main/manual/getting-started.md  
-https://github.com/seanox/xml-micro-exchange-js/blob/main/manual/getting-started.md  
-https://github.com/seanox/xml-micro-exchange-js/blob/main/manual/getting-started.md
+https://github.com/seanox/xml-micro-exchange-js/blob/master/manual/getting-started.md  
+https://github.com/seanox/xml-micro-exchange-js/blob/master/manual/getting-started.md  
+https://github.com/seanox/xml-micro-exchange-js/blob/master/manual/getting-started.md
 
 __Where to find the manual__ (depending on the project)__:__  
 https://github.com/seanox/xml-micro-exchange-php/blob/master/manual/README.md  
