@@ -1,3 +1,24 @@
+1.6.0 20241223
+BF: Service: Correction of REQUEST_URI for requests without protocol
+BF: Service: Review and optimization
+    - XML Version and encoding in the XML response
+    - Replacement of HTML entities in the XML response with UTF-8
+CR: Content: Added snake.html as example and little gimmick
+CR: Service: Omission of the HTTP method TOUCH
+    Because it is not an official HTTP standard.
+CR: Service: Change from status code to 304 when creating
+    If an existing storage is opened with CONNECT or PUT without XPath, server
+    status 304 is now returned instead of the previous server status 204.
+CR: Service: JSON transformation uses the Accept header
+    Option !json in the URI is omitted!
+
+1.5.1 20241030
+BF: Service: Correction of the configuration for on-premises
+    The Apache environment variable was not read correctly.
+BF: Build: Correction of the version number distribution
+    Dockerfile was forgotten.
+CR: Build: Added build and publish the Docker images
+
 1.5.0 20241027
 BF: Build: Review and optimization
 CR: Service: Optimization of the configuration via environment variables
@@ -7,7 +28,7 @@ CR: Service: Optimization of the configuration via environment variables
     - XMEX_STORAGE_QUANTITY: Maximum number of files in data storage (65535)
     - XMEX_STORAGE_SPACE: Maximum data size of files in data storage in bytes (256 *1024)
     - XMEX_STORAGE_EXPIRATION: Maximum idle time of the files in seconds (15 *60)
-    - XMEX_STORAGE_REVISION_TYPE: Basis of the revision number (1)
+    - XMEX_STORAGE_REVISION_TYPE: Basis of the revision number (timestamp)
     - XMEX_DEBUG_MODE: Activates debug mode for unit tests (off)
     - XMEX_CONTAINER_MODE: Activates debug mode for unit tests (off)
 CR: Request: Configurable XPath delimiter of the URI

@@ -5,7 +5,7 @@ define("XMEX_STORAGE_DIRECTORY", getenv("XMEX_STORAGE_DIRECTORY") ?: "./data");
 define("XMEX_STORAGE_QUANTITY", getenv("XMEX_STORAGE_QUANTITY") ?: 65535);
 define("XMEX_STORAGE_SPACE", getenv("XMEX_STORAGE_SPACE") ?: 256 *1024);
 define("XMEX_STORAGE_EXPIRATION", getenv("XMEX_STORAGE_EXPIRATION") ?: 15 *60);
-define("XMEX_STORAGE_REVISION_TYPE", (XMEX_DEBUG_MODE ? "serial" : strcasecmp(getenv("XMEX_STORAGE_REVISION_TYPE"), "serial") === 0) ? "serial" : "timestamp");
+define("XMEX_STORAGE_REVISION_TYPE", (XMEX_DEBUG_MODE || strcasecmp(getenv("XMEX_STORAGE_REVISION_TYPE"), "serial") === 0) ? "serial" : "timestamp");
 define("XMEX_URI_XPATH_DELIMITER", getenv("XMEX_URI_XPATH_DELIMITER") ?: "!");
 class Storage {
     const DIRECTORY = XMEX_STORAGE_DIRECTORY;
@@ -16,6 +16,8 @@ class Storage {
     const DEBUG_MODE = XMEX_DEBUG_MODE;
     const CONTAINER_MODE = XMEX_CONTAINER_MODE;
     const REVISION_TYPE = XMEX_STORAGE_REVISION_TYPE;
+    const XML_DOCUMENT_VERSION  = "1.0";
+    const XML_DOCUMENT_ENCODING = "UTF-8";
     const CORS = [
         "Access-Control-Allow-Origin" => "*",
         "Access-Control-Allow-Credentials" => "true",
@@ -35,10 +37,9 @@ class Storage {
     const PATTERN_BASE64 = "/^\?(?:[A-Za-z0-9+\/]{4})*(?:[A-Za-z0-9+\/]{2}==|[A-Za-z0-9+\/]{3}=)?$/";
     const PATTERN_HEX = "/^\?([A-Fa-f0-9]{2})+$/";
     const PATTERN_NON_NUMERICAL = "/^.*\D/";
-    const PATTERN_HTTP_REQUEST = "/^([A-Z]+)\s+(.+)\s+(HTTP\/\d+(?:\.\d+)*)$/i";
+    const PATTERN_HTTP_REQUEST = "/^([A-Z]+)\s+(.+?)\s*(?:\s+(HTTP\/\d+(?:\.\d+)*))?$/i";
     const PATTERN_HTTP_REQUEST_URI = "/^(.*?)" . Storage::DELIMITER . "(.*)$/i";
     const PATTERN_HEADER_STORAGE = "/^(\w(?:[-\w]{0,62}\w)?)(?:\s+(\w{1,64}))?$/";
-    const PATTERN_XPATH_OPTIONS = "/^(.*?)((?:!+\w+){0,})$/";
     const PATTERN_XPATH_ATTRIBUTE = "/((?:^\/+)|(?:^.*?))\/{0,}(?<=\/)(?:@|attribute::)(\w+)$/i";
     const PATTERN_XPATH_PSEUDO = "/^(.*?)(?:::(before|after|first|last)){0,1}$/i";
     const PATTERN_XPATH_FUNCTION = "/^[\(\s]*[^\/\.\s\(].*$/";
@@ -52,11 +53,6 @@ class Storage {
     const STORAGE_SHARE_EXCLUSIVE = 1;
     const STORAGE_SHARE_INITIAL   = 2;
     function __construct($storage = null, $root = null, $xpath = null) {
-        $options = [];
-        if (preg_match(Storage::PATTERN_XPATH_OPTIONS, $xpath ?: "", $matches, PREG_UNMATCHED_AS_NULL)) {
-            $xpath = $matches[1];
-            $options = array_merge(array_filter(explode("!", strtolower($matches[2]))));
-        }
         if (!empty($storage))
             $root = $root ?: "data";
         else $root = null;
@@ -73,7 +69,6 @@ class Storage {
         $this->root     = $root;
         $this->store    = $store;
         $this->xpath    = $xpath;
-        $this->options  = $options;
         $this->serial   = 0;
         $this->unique   = null;
         $this->revision = null;
@@ -111,7 +106,7 @@ class Storage {
             @unlink($storage->store);
         $initial = ($options & Storage::STORAGE_SHARE_INITIAL) == Storage::STORAGE_SHARE_INITIAL;
         if (!$initial && !$storage->exists())
-            $storage->quit(404, "Resource Not Found");
+            $storage->quit(404, "Not Found");
         $initial = $initial && (!file_exists($storage->store) || filesize($storage->store) <= 0);
         $storage->share = fopen($storage->store, "c+");
         $exclusive = ($options & Storage::STORAGE_SHARE_EXCLUSIVE) == Storage::STORAGE_SHARE_EXCLUSIVE;
@@ -129,8 +124,8 @@ class Storage {
             if (iterator_count($iterator) >= Storage::QUANTITY)
                 $storage->quit(507, "Insufficient Storage");
             fwrite($storage->share,
-                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" .
-                "<" . $storage->root . " ___rev=\"" . $storage->unique . "\" ___uid=\"" . $storage->getSerial() ."\"/>");
+                "<?xml version=\"" . Storage::XML_DOCUMENT_VERSION . "\" encoding=\"" . Storage::XML_DOCUMENT_ENCODING . "\"?>"
+                . "<{$storage->root} ___rev=\"{$storage->unique}\" ___uid=\"{$storage->getSerial()}\"/>");
             rewind($storage->share);
             if (strcasecmp(Storage::REVISION_TYPE, "serial") === 0)
                 $storage->unique = 0;
@@ -138,7 +133,7 @@ class Storage {
         fseek($storage->share, 0, SEEK_END);
         $size = ftell($storage->share);
         rewind($storage->share);
-        $storage->xml = new DOMDocument();
+        $storage->xml = new DOMDocument(Storage::XML_DOCUMENT_VERSION, Storage::XML_DOCUMENT_ENCODING);
         $storage->xml->preserveWhiteSpace = false;
         $storage->xml->formatOutput = Storage::DEBUG_MODE;
         $storage->xml->loadXML(fread($storage->share, $size));
@@ -162,7 +157,7 @@ class Storage {
             return;
         $output = $this->xml->saveXML();
         if (strlen($output) > Storage::SPACE)
-            $this->quit(413, "Payload Too Large");
+            $this->quit(413, "Content Too Large");
         ftruncate($this->share, 0);
         rewind($this->share);
         fwrite($this->share, $output);
@@ -199,6 +194,13 @@ class Storage {
             $node = $node->parentNode;
         }
     }
+    private static function isMediaTypeAccepted($media, $strict = false) {
+        if (!isset($_SERVER["HTTP_ACCEPT"]))
+            return !$strict;
+        $accept = strtolower($_SERVER["HTTP_ACCEPT"]);
+        $accept = array_map('trim', explode(',', $accept));
+        return in_array(strtolower($media), $accept, true);
+    }
     function doConnect() {
         Storage::cleanUp();
         if ($this->xpath !== null
@@ -206,7 +208,7 @@ class Storage {
             $this->quit(400, "Bad Request", ["Message" => "Unexpected XPath"]);
         $response = [201, "Created"];
         if ($this->revision != $this->unique)
-            $response = [204, "No Content"];
+            $response = [304, "Not Modified"];
         $this->materialize();
         $this->quit($response[0], $response[1], ["Allow" => "CONNECT, OPTIONS, GET, POST, PUT, PATCH, DELETE"]);
     }
@@ -260,12 +262,16 @@ class Storage {
                 if ($result[0] instanceof DOMAttr) {
                     $result = $result[0]->value;
                 } else {
-                    $xml = new DOMDocument();
+                    $xml = new DOMDocument(Storage::XML_DOCUMENT_VERSION, Storage::XML_DOCUMENT_ENCODING);
+                    $xml->preserveWhiteSpace = false;
+                    $xml->formatOutput = Storage::DEBUG_MODE;
                     $xml->appendChild($xml->importNode($result[0], true));
                     $result = $xml;
                 }
             } else if ($result->length > 0) {
-                $xml = new DOMDocument();
+                $xml = new DOMDocument(Storage::XML_DOCUMENT_VERSION, Storage::XML_DOCUMENT_ENCODING);
+                $xml->preserveWhiteSpace = false;
+                $xml->formatOutput = Storage::DEBUG_MODE;
                 $collection = $xml->createElement("collection");
                 $xml->importNode($collection, true);
                 foreach ($result as $entry) {
@@ -291,7 +297,7 @@ class Storage {
         }
         libxml_use_internal_errors(true);
         libxml_clear_errors();
-        $style = new DOMDocument();
+        $style = new DOMDocument(Storage::XML_DOCUMENT_VERSION, Storage::XML_DOCUMENT_ENCODING);
         $style->preserveWhiteSpace = false;
         $style->formatOutput = Storage::DEBUG_MODE;
         $input = file_get_contents("php://input");
@@ -301,18 +307,18 @@ class Storage {
             $message = "Invalid XSLT stylesheet";
             if (Storage::fetchLastXmlErrorMessage())
                 $message .= " (" . Storage::fetchLastXmlErrorMessage() . ")";
-            $this->quit(422, "Unprocessable Entity", ["Message" => $message]);
+            $this->quit(422, "Unprocessable Content", ["Message" => $message]);
         }
         $processor = new XSLTProcessor();
         $processor->importStyleSheet($style);
         if (Storage::fetchLastXmlErrorMessage()) {
              $message = "Invalid XSLT stylesheet (" . Storage::fetchLastXmlErrorMessage() . ")";
-             $this->quit(422, "Unprocessable Entity", ["Message" => $message]);
+             $this->quit(422, "Unprocessable Content", ["Message" => $message]);
         }
         $xml = $this->xml;
         if ($this->xpath !== null
                 && strlen($this->xpath) > 0) {
-            $xml = new DOMDocument();
+            $xml = new DOMDocument(Storage::XML_DOCUMENT_VERSION, Storage::XML_DOCUMENT_ENCODING);
             $targets = (new DOMXpath($this->xml))->query($this->xpath);
             if (Storage::fetchLastXmlErrorMessage()) {
                 $message = "Invalid XPath axis (" . Storage::fetchLastXmlErrorMessage() . ")";
@@ -343,34 +349,32 @@ class Storage {
             $message = "Invalid XSLT stylesheet";
             if (Storage::fetchLastXmlErrorMessage())
                 $message .= " (" . Storage::fetchLastXmlErrorMessage() . ")";
-            $this->quit(422, "Unprocessable Entity", ["Message" => $message]);
+            $this->quit(422, "Unprocessable Content", ["Message" => $message]);
         }
-        $method = (new DOMXpath($style))->evaluate("normalize-space(//*[local-name()='output']/@method)");
+        $method = trim(strtolower((new DOMXpath($style))->evaluate("normalize-space(//*[local-name()='output']/@method)") ?? ""));
+        if (!in_array($method, ["", "xml", "html", "text"]))
+            $this->quit(415, "Unsupported Media Type");
         if (empty($output)) {
-            if (strcasecmp($method, "xml") !== 0
-                    && !empty($method))
+            if (!in_array($method, ["", "xml"]))
                 $this->quit(204, "No Content");
-            $output = new DOMDocument();
+            $output = new DOMDocument(Storage::XML_DOCUMENT_VERSION, Storage::XML_DOCUMENT_ENCODING);
         }
         $header = ["Content-Type" => Storage::CONTENT_TYPE_XML];
-        if (strcasecmp($method, "xml") === 0
-                || empty($method)) {
-            if (in_array("json", $this->options))
-                $output = simplexml_load_string($output);
-        } else if (strcasecmp($method, "html") === 0) {
+        if (strcmp($method, "text") === 0)
+            $header = ["Content-Type" => Storage::CONTENT_TYPE_TEXT];
+        else if (strcmp($method, "html") === 0)
             $header = ["Content-Type" => Storage::CONTENT_TYPE_HTML];
-        } else $header = ["Content-Type" => Storage::CONTENT_TYPE_TEXT];
-        $encoding = (new DOMXpath($style))->evaluate("normalize-space(//*[local-name()='output']/@encoding)");
-        if (!empty($encoding))
-            $header["Content-Type"] .= "; charset=$encoding";
-        $this->quit(200, "Success", $header, $output);
+        else if (Storage::isMediaTypeAccepted(Storage::CONTENT_TYPE_JSON, true))
+            $output = simplexml_load_string($output);
+        $encoding = trim((new DOMXpath($style))->evaluate("normalize-space(//*[local-name()='output']/@encoding)") ?? "");
+        $this->quit(200, "Success", $header, $output, $encoding);
     }
     function doPut() {
         if ($this->xpath === null
                 || strlen($this->xpath) <= 0)
             $this->quit(400, "Bad Request", ["Message" => "Invalid XPath"]);
         if (strlen(file_get_contents("php://input")) > Storage::SPACE)
-            $this->quit(413, "Payload Too Large");
+            $this->quit(413, "Content Too Large");
         if (!isset($_SERVER["CONTENT_TYPE"]))
             $this->quit(415, "Unsupported Media Type");
         if (preg_match(Storage::PATTERN_XPATH_FUNCTION, $this->xpath)) {
@@ -386,7 +390,7 @@ class Storage {
             if (strcasecmp($_SERVER["CONTENT_TYPE"], Storage::CONTENT_TYPE_XPATH) === 0) {
                 if (!preg_match(Storage::PATTERN_XPATH_FUNCTION, $input)) {
                     $message = "Invalid XPath (Axes are not supported)";
-                    $this->quit(422, "Unprocessable Entity", ["Message" => $message]);
+                    $this->quit(422, "Unprocessable Content", ["Message" => $message]);
                 }
                 $input = (new DOMXpath($this->xml))->evaluate($input);
                 if ($input === false
@@ -394,7 +398,7 @@ class Storage {
                     $message = "Invalid XPath function";
                     if (Storage::fetchLastXmlErrorMessage())
                         $message .= " (" . Storage::fetchLastXmlErrorMessage() . ")";
-                    $this->quit(422, "Unprocessable Entity", ["Message" => $message]);
+                    $this->quit(422, "Unprocessable Content", ["Message" => $message]);
                 }
             }
             $xpath = $matches[1];
@@ -425,14 +429,15 @@ class Storage {
             $this->quit(400, "Bad Request", ["Message" => "Invalid XPath axis"]);
         $xpath = $matches[1];
         $pseudo = $matches[2];
-        if (in_array(strtolower($_SERVER["CONTENT_TYPE"]), [Storage::CONTENT_TYPE_TEXT, Storage::CONTENT_TYPE_XPATH])) {
+        $media = strtolower($_SERVER["CONTENT_TYPE"]);
+        if (in_array($media, [Storage::CONTENT_TYPE_TEXT, Storage::CONTENT_TYPE_XPATH])) {
             if (!empty($pseudo))
                 $this->quit(415, "Unsupported Media Type");
             $input = file_get_contents("php://input");
-            if (strcasecmp($_SERVER["CONTENT_TYPE"], Storage::CONTENT_TYPE_XPATH) === 0) {
+            if (strcasecmp($media, Storage::CONTENT_TYPE_XPATH) === 0) {
                 if (!preg_match(Storage::PATTERN_XPATH_FUNCTION, $input)) {
                     $message = "Invalid XPath (Axes are not supported)";
-                    $this->quit(422, "Unprocessable Entity", ["Message" => $message]);
+                    $this->quit(422, "Unprocessable Content", ["Message" => $message]);
                 }
                 $input = (new DOMXpath($this->xml))->evaluate($input);
                 if ($input === false
@@ -440,7 +445,7 @@ class Storage {
                     $message = "Invalid XPath function";
                     if (Storage::fetchLastXmlErrorMessage())
                         $message .= " (" . Storage::fetchLastXmlErrorMessage() . ")";
-                    $this->quit(422, "Unprocessable Entity", ["Message" => $message]);
+                    $this->quit(422, "Unprocessable Content", ["Message" => $message]);
                 }
             }
             $targets = (new DOMXpath($this->xml))->query($xpath);
@@ -465,11 +470,11 @@ class Storage {
             $this->materialize();
             $this->quit(204, "No Content");
         }
-        if (strcasecmp($_SERVER["CONTENT_TYPE"], Storage::CONTENT_TYPE_XML) !== 0)
+        if (strcasecmp($media, Storage::CONTENT_TYPE_XML) !== 0)
             $this->quit(415, "Unsupported Media Type");
         $input = file_get_contents("php://input");
         $input = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><data>$input</data>";
-        $xml = new DOMDocument();
+        $xml = new DOMDocument(Storage::XML_DOCUMENT_VERSION, Storage::XML_DOCUMENT_ENCODING);
         $xml->preserveWhiteSpace = false;
         $xml->formatOutput = Storage::DEBUG_MODE;
         if (!$xml->loadXML($input)
@@ -477,7 +482,7 @@ class Storage {
             $message = "Invalid XML document";
             if (Storage::fetchLastXmlErrorMessage())
                 $message .= " (" . Storage::fetchLastXmlErrorMessage() . ")";
-            $this->quit(422, "Unprocessable Entity", ["Message" => $message]);
+            $this->quit(422, "Unprocessable Content", ["Message" => $message]);
         }
         $nodes = (new DOMXpath($xml))->query("//*[@___rev|@___uid]");
         foreach ($nodes as $node) {
@@ -542,7 +547,7 @@ class Storage {
                 || strlen($this->xpath) <= 0)
             $this->quit(400, "Bad Request", ["Message" => "Invalid XPath"]);
         if (strlen(file_get_contents("php://input")) > Storage::SPACE)
-            $this->quit(413, "Payload Too Large");
+            $this->quit(413, "Content Too Large");
         if (!isset($_SERVER["CONTENT_TYPE"]))
             $this->quit(415, "Unsupported Media Type");
         if (preg_match(Storage::PATTERN_XPATH_FUNCTION, $this->xpath)) {
@@ -652,7 +657,7 @@ class Storage {
         $this->materialize();
         $this->quit(204, "No Content");
     }
-    function quit($status, $message, $headers = null, $data = null) {
+    function quit($status, $message, $headers = null, $data = null, $encoding = null) {
         if (headers_sent()) {
             $this->close();
             exit;
@@ -663,9 +668,8 @@ class Storage {
             header("$header:");
             header_remove($header);
         }
-        if (!empty(Storage::CORS))
-            foreach (Storage::CORS as $key => $value)
-                header("$key: $value");
+        foreach (Storage::CORS as $key => $value)
+            header("$key: $value");
         if ($_SERVER["REQUEST_METHOD"] == "OPTIONS") {
             if (isset($_SERVER["HTTP_ACCESS_CONTROL_REQUEST_METHOD"]))
                 header("Access-Control-Allow-Methods: CONNECT, OPTIONS, GET, POST, PUT, PATCH, DELETE");
@@ -694,7 +698,7 @@ class Storage {
                     && strlen($data) <= 0)
                 $data = null;
             if ($data !== null) {
-                if (in_array("json", $this->options)) {
+                if (Storage::isMediaTypeAccepted(Storage::CONTENT_TYPE_JSON, true)) {
                     $headers["Content-Type"] = Storage::CONTENT_TYPE_JSON;
                     if ($data instanceof DOMDocument
                             || $data instanceof SimpleXMLElement)
@@ -711,6 +715,8 @@ class Storage {
                         $data = $data->saveXML();
                 }
                 $headers["Content-Length"] = strlen($data);
+                if (trim($encoding ?? "") !== "")
+                    $headers["Content-Type"] .= "; charset=$encoding";
             }
         } else $data = null;
         foreach ($headers as $key => $value) {
@@ -767,7 +773,7 @@ class Storage {
             $message = "Invalid XSLT stylesheet";
             if (Storage::fetchLastXmlErrorMessage())
                 $message .= " (" . Storage::fetchLastXmlErrorMessage() . ")";
-            (new Storage)->quit(422, "Unprocessable Entity", ["Message" => $message]);
+            (new Storage)->quit(422, "Unprocessable Content", ["Message" => $message]);
         }
         $unique = round(microtime(true) *1000);
         $unique = base_convert($unique, 10, 36);
@@ -791,7 +797,7 @@ $script = basename(__FILE__);
 if (isset($_SERVER["PHP_SELF"])
         && preg_match("/\/" . str_replace(".", "\\.", $script) . "([\/\?].*)?$/", $_SERVER["PHP_SELF"])
         && (empty($_SERVER["REDIRECT_URL"])))
-    (new Storage)->quit(404, "Resource Not Found");
+    (new Storage)->quit(404, "Not Found");
 $method = strtoupper($_SERVER["REQUEST_METHOD"]);
 if ($method === "OPTIONS"
         && isset($_SERVER["HTTP_ORIGIN"])
@@ -802,23 +808,19 @@ if (!isset($_SERVER["HTTP_STORAGE"]))
 $storage = $_SERVER["HTTP_STORAGE"];
 if (!preg_match(Storage::PATTERN_HEADER_STORAGE, $storage))
     (new Storage)->quit(400, "Bad Request", ["Message" => "Invalid storage identifier"]);
-$xpath = $_SERVER["REQUEST_URI"];
-if (Storage::PATTERN_HTTP_REQUEST_URI) {
-    if (isset($_SERVER["REQUEST"])
-            && preg_match(Storage::PATTERN_HTTP_REQUEST, $_SERVER["REQUEST"], $xpath, PREG_UNMATCHED_AS_NULL))
-        $xpath = $xpath[2];
-    $xpath = preg_match(Storage::PATTERN_HTTP_REQUEST_URI, $xpath, $xpath, PREG_UNMATCHED_AS_NULL) ? $xpath[2] : "";
-}
+$request = $_SERVER["REQUEST_URI"];
+if (isset($_SERVER["REQUEST"]))
+    $request = preg_match(Storage::PATTERN_HTTP_REQUEST, $_SERVER["REQUEST"], $request, PREG_UNMATCHED_AS_NULL) ? $request[2] : "";
+$xpath = preg_match(Storage::PATTERN_HTTP_REQUEST_URI, $request, $xpath, PREG_UNMATCHED_AS_NULL) ? $xpath[2] : "";
 if (preg_match(Storage::PATTERN_HEX, $xpath))
-    $xpath = hex2bin(substr($xpath, 1));
+    $xpath = trim(hex2bin(substr($xpath, 1)));
 else if (preg_match(Storage::PATTERN_BASE64, $xpath))
-    $xpath = base64_decode(substr($xpath, 1));
-else $xpath = urldecode($xpath);
-if (strcasecmp("TOUCH", $method) === 0
-        || (strcasecmp("PUT", $method) === 0
-                && strlen($xpath ?: "") <= 0))
+    $xpath = trim(base64_decode(substr($xpath, 1)));
+else $xpath = trim(urldecode($xpath));
+if (strcasecmp("PUT", $method) === 0
+        && strlen($xpath ?: "") <= 0)
     $method = "CONNECT";
-if (empty($xpath)
+if (strcmp($xpath, "") === 0
         && !in_array($method, ["CONNECT", "OPTIONS", "POST"]))
     $xpath = "/";
 $options = Storage::STORAGE_SHARE_NONE;
